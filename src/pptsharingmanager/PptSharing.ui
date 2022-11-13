@@ -267,6 +267,32 @@
     <string>保存PPT</string>
    </property>
   </widget>
+  <widget class="QPushButton" name="buttonPlay">
+   <property name="geometry">
+    <rect>
+     <x>30</x>
+     <y>600</y>
+     <width>40</width>
+     <height>40</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">#buttonPlay {
+	background-color: rgba(255 , 255, 255, 0);
+	border-radius: 20px;
+	background-image: url(D:/Qt_workspace/src/TeacherEnd/res/assets/play_40.jpg);
+}</string>
+   </property>
+   <property name="text">
+    <string/>
+   </property>
+   <property name="iconSize">
+    <size>
+     <width>40</width>
+     <height>40</height>
+    </size>
+   </property>
+  </widget>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <resources/>

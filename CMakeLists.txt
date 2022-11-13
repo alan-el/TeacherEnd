@@ -10,16 +10,19 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets AxContainer)
 qt_standard_project_setup()
 
 add_subdirectory(src/main)
-add_subdirectory(src/pptsharing)
+add_subdirectory(src/pptsharingmanager)
 
 # Resources:
-#set(resource_files
-#    "images/ThunderCliff.jpg"
-#)
+set(resource_files
+    "res/assets/next.jpg"
+    "res/assets/play.jpg"
+    "res/assets/play_40.jpg"
+    "res/assets/prev.jpg"
+)
 
-#qt6_add_resources(helloworld "helloworld"
-#    PREFIX
-#        "/"
-#    FILES
-#        ${resource_files}
-#)
+qt6_add_resources(TeacherEnd "helloworld"
+    PREFIX
+        "/"
+    FILES
+        ${resource_files}
+)

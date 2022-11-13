@@ -1,5 +1,5 @@
 #include "TeacherEnd.h"
-#include "PptSharing.h"
+#include "PptSharingManager.h"
 
 
 TeacherEnd::TeacherEnd(QWidget *parent)
@@ -16,6 +16,6 @@ TeacherEnd::~TeacherEnd()
 void TeacherEnd::onButtonPPTShareClicked()
 {
     this->hide();
-    PptSharing* pptShWindow = new PptSharing(nullptr);
+    PptSharingManager* pptShWindow = new PptSharingManager(nullptr);
     pptShWindow->show();
 }

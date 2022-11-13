@@ -1,36 +1,39 @@
-#ifndef PPTSHARING_H
-#define PPTSHARING_H
+#ifndef PPTSHARINGMANAGER_H
+#define PPTSHARINGMANAGER_H
 
 #include <QWidget>
 #include <QAxObject>
 #include <QDateTime>
 #include <QPushButton>
 #include <QLabel>
+#include "PptTextShape.h"
+#include "PptPictureShape.h"
 
 namespace Ui {
 class PptSharing;
 }
 
-typedef struct SelectedData
-{
-    int type;	// 0 for texts, 1 for pics
-    int slideNum;
-    int shapeNum;
-}SelectedData;
+//typedef struct SelectedData
+//{
+//    int type;	// 0 for texts, 1 for pics
+//    int slideNum;
+//    int shapeNum;
+//}SelectedData;
 
-class PptSharing : public QWidget
+class PptSharingManager : public QWidget
 {
     Q_OBJECT
 
 public:
-    explicit PptSharing(QWidget *parent = nullptr);
-    ~PptSharing();
+    explicit PptSharingManager(QWidget *parent = nullptr);
+    ~PptSharingManager();
 
 protected:
     bool eventFilter(QObject *obj, QEvent *ev) override;
 
 private slots:
     void onButtonOpenClicked();
+    void onButtonPlayClicked();
     void onButtonSavePPTClicked();
     void onButtonSaveAsBraillePPTClicked();
 
@@ -63,6 +66,9 @@ private:
     QAxObject* activeWindow;
     QAxObject* view;
     QAxObject* slide;
+    QAxObject* slideShowSettings;
+    QAxObject* slideShowWindow;
+    QAxObject* slideShowView;
 
     QString pathname;
     QString dirname;
@@ -81,15 +87,21 @@ private:
     QList<QImage> slidesThumb;
     QList<QLabel*> slideLabels;
 
-    QList<SelectedData> slcdData;
+//    QList<SelectedData> slcdData;
+    QList<PptPictureShape> allPptPictShapes;
+    QList<PptTextShape> allPptTextShapes;
+//    QList<PptShape> slcdPptShapes;
 
     int slidesNum;
     int curSlideIndex;
     int curPicsIndex;
+    int curTxtsIndex;
     int allPicsLblClkdNum = 0;
     int slcdPicsLblClkdNum = 0;
     int allTxtsBtnClkdNum = 0;
     int slcdTxtsBtnClkdNum = 0;
+
+    bool isSlideShowRunning;
 };
 
-#endif // PPTSHARING_H
+#endif // PPTSHARINGMANAGER_H
