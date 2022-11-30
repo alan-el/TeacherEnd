@@ -81,6 +81,11 @@
      <verstretch>0</verstretch>
     </sizepolicy>
    </property>
+   <property name="font">
+    <font>
+     <pointsize>14</pointsize>
+    </font>
+   </property>
   </widget>
   <widget class="QWidget" name="horizontalLayoutWidget">
    <property name="geometry">
@@ -215,7 +220,7 @@
     <string/>
    </property>
   </widget>
-  <widget class="QPushButton" name="buttonSaveAsBraillePPT">
+  <widget class="QPushButton" name="buttonSave">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -252,19 +257,6 @@
    </property>
    <property name="text">
     <string>分享文字</string>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="buttonSavePPT">
-   <property name="geometry">
-    <rect>
-     <x>220</x>
-     <y>10</y>
-     <width>93</width>
-     <height>28</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>保存PPT</string>
    </property>
   </widget>
   <widget class="QPushButton" name="buttonPlay">

@@ -5,23 +5,24 @@
 class PptShape
 {
 public:
+    PptShape() = default;
     PptShape(QString filePathname);
 
-    QString getMd5Hash();
-    int getShapeIndexInSlide();
-    void setShapeIndexInSlide(int index);
-    bool getIsSelected();
-    void setIsSelected(bool isSel);
+    QString md5Hash() const;
+
+    int shapeIndexInSlide()const;
+    void setShapeIndexInSlide(const int index);
+
+    bool isSelected()const;
+    void setIsSelected(const bool isSel);
 
 private:
     bool calcuMd5Hash(QString filePathname);
-    // TODO Shape 的触点表示生成方法
 
 protected:
-    QByteArray md5Hash;
-    int shapeIndexInSlide;
-    bool isSelected;
-    // TODO 需要属性: Shape 的触点表示 (盲文 or 触点图像)
+    QByteArray mMd5Hash;    // save
+    int mShapeIndexInSlide;
+    bool mIsSelected;       // save
 };
 
 #endif // PPTSHAPE_H

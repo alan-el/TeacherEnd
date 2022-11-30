@@ -8,23 +8,21 @@
 #include <QLabel>
 #include "PptTextShape.h"
 #include "PptPictureShape.h"
+#include "DataSave.h"
 
 namespace Ui {
 class PptSharing;
 }
-
-//typedef struct SelectedData
-//{
-//    int type;	// 0 for texts, 1 for pics
-//    int slideNum;
-//    int shapeNum;
-//}SelectedData;
 
 class PptSharingManager : public QWidget
 {
     Q_OBJECT
 
 public:
+    enum SaveShapeType {
+        Text, Picture
+    };
+
     explicit PptSharingManager(QWidget *parent = nullptr);
     ~PptSharingManager();
 
@@ -34,30 +32,42 @@ protected:
 private slots:
     void onButtonOpenClicked();
     void onButtonPlayClicked();
-    void onButtonSavePPTClicked();
-    void onButtonSaveAsBraillePPTClicked();
+    void onButtonSaveClicked();
 
     void onButtonAllTxtsBtnClicked();
     void onButtonSlcdTxtsBtnClicked();
+
     void allPicsLblClkDetect();
     void slcdPicsLblClkDetect();
+
     void allTxtsBtnDblClkDetect();
     void slcdTxtsBtnDblClkDetect();
 
-
     void queryCurSlideIndex();
+
+    void autoSaveData();
+
+    void saveData();
+
     void catchException(int, const QString&, const QString&, const QString&);
 private:
     Ui::PptSharing *ui;
 
     void exportTextPicsInPpt(int index);
+
     void enableQueryCurSlideIndex();
+
+    void enableAutoSaveData();
+
     void updateAllPlainTextsInSlide();
     void updateAllPicturesInSlide();
+
     void updateSelectedTextsInSlide();
     void updateSelectedPicturesInSlide();
+
     void updateBigViewPict();
     void updateBigViewText();
+
     void updateUi();
 
     QAxObject* ppApp;
@@ -75,22 +85,18 @@ private:
     QString pathnameNoExtension;
     QDateTime lastMdf;
     QTimer *curSldIdxTmr;
+    QTimer *autoSaveDataTmr;
 
-    QList<QString> textBlocks;
     QList<QPushButton*> txtBtnList;
     QList<QPushButton*> slcdTxtBtnList;
 
-    QList<QImage> imgs;
     QList<QLabel*> imgLabels;
     QList<QLabel*> slcdImgLabels;
 
-    QList<QImage> slidesThumb;
-    QList<QLabel*> slideLabels;
-
-//    QList<SelectedData> slcdData;
     QList<PptPictureShape> allPptPictShapes;
     QList<PptTextShape> allPptTextShapes;
-//    QList<PptShape> slcdPptShapes;
+
+    DataSave savedData;
 
     int slidesNum;
     int curSlideIndex;

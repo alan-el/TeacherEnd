@@ -7,7 +7,7 @@ class BrailleTranslator
 public:
     BrailleTranslator();
 
-    static QString brlTranslate(QString& plain);
+    static QString brlTranslate(const QString plain);
 };
 
 #endif // BRAILLETRANSLATOR_H

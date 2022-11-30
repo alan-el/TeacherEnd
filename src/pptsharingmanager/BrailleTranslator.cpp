@@ -7,7 +7,7 @@ BrailleTranslator::BrailleTranslator()
 
 }
 
-QString BrailleTranslator::brlTranslate(QString& plain)
+QString BrailleTranslator::brlTranslate(const QString plain)
 {
     int len = plain.length();
     const wchar_t *pt16 = (const wchar_t *)plain.utf16();

@@ -6,8 +6,8 @@
 PptShape::PptShape(QString filePathname)
 {
     calcuMd5Hash(filePathname);
-    shapeIndexInSlide = 0;
-    isSelected = false;
+    mShapeIndexInSlide = 0;
+    mIsSelected = false;
 }
 
 bool PptShape::calcuMd5Hash(QString filePathname)
@@ -17,7 +17,7 @@ bool PptShape::calcuMd5Hash(QString filePathname)
     if(file.open(QIODevice::ReadOnly))
     {
         QByteArray data = file.readAll();
-        md5Hash = QCryptographicHash::hash(QByteArrayView{data}, QCryptographicHash::Md5);
+        mMd5Hash = QCryptographicHash::hash(QByteArrayView{data}, QCryptographicHash::Md5);
         file.close();
         return true;
     }
@@ -25,30 +25,30 @@ bool PptShape::calcuMd5Hash(QString filePathname)
     return false;
 }
 
-QString PptShape::getMd5Hash()
+QString PptShape::md5Hash() const
 {
-    QString ret{(md5Hash.toHex(0).toUpper())};
+    QString ret{(mMd5Hash.toHex(0).toUpper())};
     return ret;
 }
 
 
-int PptShape::getShapeIndexInSlide()
+int PptShape::shapeIndexInSlide() const
 {
-    return shapeIndexInSlide;
+    return mShapeIndexInSlide;
 }
 
-void PptShape::setShapeIndexInSlide(int index)
+void PptShape::setShapeIndexInSlide(const int index)
 {
-    shapeIndexInSlide = index;
+    mShapeIndexInSlide = index;
 }
 
-bool PptShape::getIsSelected()
+bool PptShape::isSelected() const
 {
-    return isSelected;
+    return mIsSelected;
 }
 
-void PptShape::setIsSelected(bool isSel)
+void PptShape::setIsSelected(const bool isSel)
 {
-    isSelected = isSel;
+    mIsSelected = isSel;
 }
 

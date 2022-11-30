@@ -21,23 +21,23 @@ PptSharingManager::PptSharingManager(QWidget *parent) :
 //    QIcon* icon = new QIcon(":res/assets/play_40.jpg");
 //    ui->buttonOpen->setIcon(*icon);
 
-//    PptShape a{PptShape::Pictures, "D:/Qt_workspace/src/TeacherEnd/doc/test/pictures/slide6_pict1.jpg"};
-//    PptShape b{PptShape::Pictures, "D:/Qt_workspace/src/TeacherEnd/doc/test/pictures/slide6_pict1_small.jpg"};
-//    qDebug() << "origin: " << a.getMd5Hash();
-//    qDebug() << "alias: " << b.getMd5Hash();
+//    QString plain{"一二三四五"};
+//    QString brl{BrailleTranslator::brlTranslate(plain)};
+//    qDebug() << brl;
 
-    QString plain{"一二三四五"};
-    QString brl{BrailleTranslator::brlTranslate(plain)};
-    qDebug() << brl;
+//    DataSave dataSave{DataSave::Test};
+//    dataSave.saveData(DataSave::Json, "C:/Users/Alan/Desktop/test");
+
+//    DataSave dataSave{};
+//    dataSave.loadData(DataSave::Json, "D:/Qt_workspace/build/build-TeacherEnd/test");
+//    dataSave.print();
 
     connect(ui->buttonOpen, SIGNAL(clicked()), SLOT(onButtonOpenClicked()));
     connect(ui->buttonPlay, SIGNAL(clicked()), SLOT(onButtonPlayClicked()));
-    connect(ui->buttonSavePPT, SIGNAL(clicked()), SLOT(onButtonSavePPTClicked()));
-    connect(ui->buttonSaveAsBraillePPT, SIGNAL(clicked()), SLOT(onButtonSaveAsBraillePPTClicked()));
+    connect(ui->buttonSave, SIGNAL(clicked()), SLOT(onButtonSaveClicked()));
 
     ui->buttonPlay->setVisible(false);
-    ui->buttonSavePPT->setEnabled(false);
-    ui->buttonSaveAsBraillePPT->setEnabled(false);
+    ui->buttonSave->setEnabled(false);
 
     isSlideShowRunning = false;
 }
@@ -82,13 +82,13 @@ bool PptSharingManager::eventFilter(QObject * obj, QEvent * event)
                     int index = 0;
                     for(int j = 0; j < allPptPictShapes.size(); j++)
                     {
-                        if(allPptPictShapes[j].getShapeIndexInSlide() > 0 && allPptPictShapes[j].getIsSelected())
+                        if(allPptPictShapes[j].shapeIndexInSlide() > 0 && allPptPictShapes[j].isSelected())
                             index++;
 
                         if(index == i + 1)
                         {
                             slcdPicsLblClkdNum = 1;
-                            curPicsIndex = allPptPictShapes[j].getShapeIndexInSlide();
+                            curPicsIndex = allPptPictShapes[j].shapeIndexInSlide();
                             QTimer::singleShot(500, this, SLOT(slcdPicsLblClkDetect()));
                             break;
                         }
@@ -113,7 +113,7 @@ bool PptSharingManager::eventFilter(QObject * obj, QEvent * event)
                     allPicsLblClkdNum = 2;
                     for(int j = 0; j < allPptPictShapes.size(); j++)
                     {
-                        if(allPptPictShapes[j].getShapeIndexInSlide() == i + 1)
+                        if(allPptPictShapes[j].shapeIndexInSlide() == i + 1)
                         {
                             allPptPictShapes[j].setIsSelected(true);
                             break;
@@ -140,7 +140,7 @@ bool PptSharingManager::eventFilter(QObject * obj, QEvent * event)
                     int index = 0;
                     for(int j = 0; j < allPptPictShapes.size(); j++)
                     {
-                        if(allPptPictShapes[j].getShapeIndexInSlide() > 0 && allPptPictShapes[j].getIsSelected())
+                        if(allPptPictShapes[j].shapeIndexInSlide() > 0 && allPptPictShapes[j].isSelected())
                             index++;
 
                         if(index == i + 1)
@@ -189,17 +189,30 @@ void PptSharingManager::onButtonOpenClicked()
     presentations = ppApp->querySubObject("Presentations");
     presentation = presentations->querySubObject("Open(QString)", pathname);
 
-    connect(ppApp, SIGNAL(exception(int, QString, QString, QString)), this, SLOT(catchException(int, QString, QString, QString)));
-    connect(presentations, SIGNAL(exception(int, QString, QString, QString)), this, SLOT(catchException(int, QString, QString, QString)));
-    connect(presentation, SIGNAL(exception(int, QString, QString, QString)), this, SLOT(catchException(int, QString, QString, QString)));
+    connect(ppApp, SIGNAL(exception(int,QString,QString,QString)), this, SLOT(catchException(int,QString,QString,QString)));
+    connect(presentations, SIGNAL(exception(int,QString,QString,QString)), this, SLOT(catchException(int,QString,QString,QString)));
+    connect(presentation, SIGNAL(exception(int,QString,QString,QString)), this, SLOT(catchException(int,QString,QString,QString)));
 
     curSlideIndex = curPicsIndex = curTxtsIndex = 1;
     QFileInfo fi(pathname);
     lastMdf = fi.lastModified();
+
+    if(QFileInfo::exists(pathnameNoExtension + ".json"))
+    {
+        savedData.loadData(DataSave::Json, pathnameNoExtension);
+        for(const PptTextShape& txt : savedData.texts())
+            allPptTextShapes.append(txt);
+
+        for(const PptPictureShape& pic : savedData.pictures())
+            allPptPictShapes.append(pic);
+    }
+
     updateUi();
     enableQueryCurSlideIndex();
+    enableAutoSaveData();
 
     ui->buttonPlay->setVisible(true);
+    ui->buttonSave->setEnabled(true);
 }
 
 void PptSharingManager::onButtonPlayClicked()
@@ -244,36 +257,16 @@ void PptSharingManager::enableQueryCurSlideIndex()
     curSldIdxTmr->start(1000);
 }
 
-void PptSharingManager::onButtonSavePPTClicked()
+void PptSharingManager::enableAutoSaveData()
 {
-    presentation->dynamicCall("Save()");
+    autoSaveDataTmr = new QTimer(this);
+    connect(autoSaveDataTmr, &QTimer::timeout, this, &PptSharingManager::autoSaveData);
+    autoSaveDataTmr->start(30000);
 }
 
-void PptSharingManager::onButtonSaveAsBraillePPTClicked()
+void PptSharingManager::onButtonSaveClicked()
 {
-    QString bpptfile = pathnameNoExtension + ".bppt";
-    QString dir;
-    QString fn;
-
-    do
-    {
-        fn = QFileDialog::getSaveFileName(0, tr("Save BPPT File"), bpptfile, "Braille PPT files (*.bppt);;All files(*.*)");
-
-        for(int i = fn.length() - 1; i >= 0; i--)
-        {
-            if(fn.at(i) == '/')
-            {
-                dir = fn.left(i);
-                break;
-            }
-        }
-
-        if(dir.compare(dirname) == 0 || fn.isEmpty())
-            break;
-
-        QMessageBox::warning(this, "提示", "请保存在原PPT文件相同目录下");
-    } while(1);
-
+    saveData();
 }
 
 void PptSharingManager::onButtonAllTxtsBtnClicked()
@@ -305,7 +298,7 @@ void PptSharingManager::onButtonAllTxtsBtnClicked()
         {
             for(int j = 0; j < allPptTextShapes.size(); j++)
             {
-                if(allPptTextShapes[j].getShapeIndexInSlide() == i + 1)
+                if(allPptTextShapes[j].shapeIndexInSlide() == i + 1)
                 {
                     allPptTextShapes[j].setIsSelected(true);
                     break;
@@ -339,12 +332,12 @@ void PptSharingManager::onButtonSlcdTxtsBtnClicked()
             int index = 0;
             for(int j = 0; j < allPptTextShapes.size(); j++)
             {
-                if(allPptTextShapes[j].getShapeIndexInSlide() > 0 && allPptTextShapes[j].getIsSelected())
+                if(allPptTextShapes[j].shapeIndexInSlide() > 0 && allPptTextShapes[j].isSelected())
                     index++;
 
                 if(index == i + 1)
                 {
-                    curTxtsIndex = allPptTextShapes[j].getShapeIndexInSlide();
+                    curTxtsIndex = allPptTextShapes[j].shapeIndexInSlide();
                     if(slcdTxtsBtnClkdNum == 2)
                         allPptTextShapes[j].setIsSelected(false);
                     break;
@@ -393,8 +386,8 @@ void PptSharingManager::slcdTxtsBtnDblClkDetect()
         updateBigViewText();
         slcdTxtsBtnClkdNum = 0;
     }
-
 }
+
 
 void PptSharingManager::queryCurSlideIndex()
 {
@@ -459,6 +452,43 @@ void PptSharingManager::queryCurSlideIndex()
     }
 }
 
+void PptSharingManager::autoSaveData()
+{
+    saveData();
+}
+
+void PptSharingManager::saveData()
+{
+    int len = pathnameNoExtension.length();
+    for(int i = 0; i < len; i++)
+    {
+        if(pathnameNoExtension.at(len - 1 - i) == '/')
+        {
+            savedData.setFileName(pathnameNoExtension.last(i));
+            break;
+        }
+    }
+
+    savedData.clear();
+    for(const PptTextShape& txt : allPptTextShapes)
+    {
+        if(txt.isSelected()/* TODO !txt.braille().isEmpty() */)
+        {
+            savedData.append(txt);
+        }
+    }
+
+    for(const PptPictureShape& pic : allPptPictShapes)
+    {
+        if(pic.isSelected()/* TODO !pic.dotsPictureData().isEmpty() */)
+        {
+            savedData.append(pic);
+        }
+    }
+
+    savedData.saveData(DataSave::Json, pathnameNoExtension);
+}
+
 void PptSharingManager::catchException(int code, const QString &source, const QString &disc, const QString &help)
 {
     qDebug() << "code: " << code;
@@ -475,7 +505,7 @@ void PptSharingManager::catchException(int code, const QString &source, const QS
 
 void PptSharingManager::updateAllPlainTextsInSlide()
 {
-    textBlocks.clear();
+//    textBlocks.clear();
     qDeleteAll(txtBtnList);
     txtBtnList.clear();
     for(int i = 0; i < allPptTextShapes.size(); i++)
@@ -495,59 +525,66 @@ void PptSharingManager::updateAllPlainTextsInSlide()
             bool hasContained = false;
             for(int j = 0; j < allPptTextShapes.size(); j++)
             {
-                if(allPptTextShapes[j].getMd5Hash().compare(psNew.getMd5Hash()) == 0)
+                if(allPptTextShapes[j].md5Hash().compare(psNew.md5Hash()) == 0)
                 {
                     hasContained = true;
                     allPptTextShapes[j].setShapeIndexInSlide(i);
                     break;
                 }
             }
+
             if(!hasContained)
             {
-                allPptTextShapes.append(psNew);
-                allPptTextShapes.last().setShapeIndexInSlide(i);
+                bool ret = plainTextFile.open(QIODevice::ReadOnly);
+                if(ret == true)
+                {
+                    QByteArray array = plainTextFile.readAll();
+                    QStringDecoder toUtf16 = QStringDecoder(QStringDecoder::System);
+                    QString plain = toUtf16.decode(array);
+                    psNew.setPlain(plain);
+
+                    allPptTextShapes.append(psNew);
+                    allPptTextShapes.last().setShapeIndexInSlide(i);
+
+                }
             }
 
-            // 更新全部 TextShape 对象UI
-            bool ret = plainTextFile.open(QIODevice::ReadOnly);
-            if(ret == true)
-            {
-                QByteArray array = plainTextFile.readAll();
-                QStringDecoder toUtf16 = QStringDecoder(QStringDecoder::System);
-                QString str = toUtf16.decode(array);
-                textBlocks.append(str);
+            QPushButton* pBtn = new QPushButton();
+            txtBtnList.append(pBtn);
+            plainTextFile.close();
 
-                QPushButton* pBtn = new QPushButton();
-                txtBtnList.append(pBtn);
-
-                plainTextFile.close();
-            }
         }
         else
             break;
     }
 
+    // 更新全部 TextShape 对象UI
     for(int i = 1; i <= txtBtnList.size(); i++)
     {
         int firstTxtNum = 3;
 
-        if(textBlocks.at(i - 1).size() > firstTxtNum)
-            txtBtnList.at(i - 1)->setText(textBlocks.at(i - 1).left(firstTxtNum) + "..");
-        else
-            txtBtnList.at(i - 1)->setText(textBlocks.at(i - 1));
+        for(PptTextShape& txtShape : allPptTextShapes)
+        {
+            if(txtShape.shapeIndexInSlide() == i)
+            {
+                if(txtShape.plain().size() > firstTxtNum)
+                    txtBtnList.at(i - 1)->setText(txtShape.plain().left(firstTxtNum) + "..");
+                else
+                    txtBtnList.at(i - 1)->setText(txtShape.plain());
 
-        txtBtnList.at(i - 1)->setFixedSize(70, 28);
+                txtBtnList.at(i - 1)->setFixedSize(70, 28);
 
-        ui->gridLayoutAllTexts->addWidget(txtBtnList.at(i - 1), (i - 1) / 7, (i - 1) % 7);
+                ui->gridLayoutAllTexts->addWidget(txtBtnList.at(i - 1), (i - 1) / 7, (i - 1) % 7);
 
-        connect(txtBtnList.at(i - 1), SIGNAL(clicked()), SLOT(onButtonAllTxtsBtnClicked()));
-        txtBtnList.at(i - 1)->show();
+                connect(txtBtnList.at(i - 1), SIGNAL(clicked()), SLOT(onButtonAllTxtsBtnClicked()));
+                txtBtnList.at(i - 1)->show();
+            }
+        }
     }
 }
 
 void PptSharingManager::updateAllPicturesInSlide()
 {
-    imgs.clear();
     qDeleteAll(imgLabels);
     imgLabels.clear();
     for(int i = 0; i < allPptPictShapes.size(); i++)
@@ -576,40 +613,66 @@ void PptSharingManager::updateAllPicturesInSlide()
             bool hasContained = false;
             for(int j = 0; j < allPptPictShapes.size(); j++)
             {
-                if(allPptPictShapes[j].getMd5Hash().compare(psNew.getMd5Hash()) == 0)
+                if(allPptPictShapes[j].md5Hash().compare(psNew.md5Hash()) == 0)
                 {
                     hasContained = true;
                     allPptPictShapes[j].setShapeIndexInSlide(i);
+
+                    QLabel* pLbl = new QLabel();
+                    imgLabels.append(pLbl);
+                    // 已经有 Image 数据了
+                    if(!allPptPictShapes[j].image().isNull())
+                        pLbl->setPixmap(QPixmap::fromImage(allPptPictShapes[j].image()));
+                    // 从数据文件读取得到的，没有 Image 数据
+                    else
+                    {
+                        QImageReader reader(imgFile);
+                        reader.setScaledSize(QSize(80, 80));
+                        QImage img = reader.read();
+                        if(img.isNull())
+                        {
+                            break;
+                        }
+                        if(img.colorSpace().isValid())
+                            img.convertToColorSpace(QColorSpace::SRgb);
+
+                        allPptPictShapes[j].setImage(img);
+                        pLbl->setPixmap(QPixmap::fromImage(img));
+                    }
+                    pLbl->adjustSize();
+
+                    ui->horizontalLayoutAllPics->addWidget(pLbl);
+                    imgLabels.last()->installEventFilter(this);
                     break;
                 }
             }
             if(!hasContained)
             {
+                QImageReader reader(imgFile);
+                reader.setScaledSize(QSize(80, 80));
+                QImage img = reader.read();
+                if(img.isNull())
+                {
+                    break;
+                }
+                if(img.colorSpace().isValid())
+                    img.convertToColorSpace(QColorSpace::SRgb);
+
+                psNew.setImage(img);
                 allPptPictShapes.append(psNew);
                 allPptPictShapes.last().setShapeIndexInSlide(i);
+
+                QLabel* pLbl = new QLabel();
+                imgLabels.append(pLbl);
+                pLbl->setPixmap(QPixmap::fromImage(allPptPictShapes.last().image()));
+                pLbl->adjustSize();
+
+                ui->horizontalLayoutAllPics->addWidget(pLbl);
+                imgLabels.last()->installEventFilter(this);
             }
         }
-
-        // 更新全部 PictureShape 对象UI
-        QImageReader reader(imgFile);
-        reader.setScaledSize(QSize(80, 80));
-        QImage img = reader.read();
-        if(img.isNull())
-        {
+        else
             break;
-        }
-        if(img.colorSpace().isValid())
-            img.convertToColorSpace(QColorSpace::SRgb);
-
-        // TODO Encapsulation into method
-        imgs.append(img);
-        QLabel* pLbl = new QLabel();
-        imgLabels.append(pLbl);
-        pLbl->setPixmap(QPixmap::fromImage(img));
-        pLbl->adjustSize();
-
-        ui->horizontalLayoutAllPics->addWidget(pLbl);
-        imgLabels.last()->installEventFilter(this);
     }
 }
 
@@ -618,16 +681,19 @@ void PptSharingManager::updateSelectedTextsInSlide()
     qDeleteAll(slcdTxtBtnList);
     slcdTxtBtnList.clear();
 
-    for(PptTextShape textPsInAll: allPptTextShapes)
+    for(PptTextShape& textPsInAll: allPptTextShapes)
     {
-        if(textPsInAll.getShapeIndexInSlide() > 0)
+        if(textPsInAll.shapeIndexInSlide() > 0)
         {
-            if(textPsInAll.getIsSelected())
+            if(textPsInAll.isSelected())
             {
                 QPushButton* pBtn = new QPushButton();
                 slcdTxtBtnList.append(pBtn);
 
-                QString brl = BrailleTranslator::brlTranslate(textBlocks[(textPsInAll.getShapeIndexInSlide() - 1)]);
+                if(textPsInAll.braille().isEmpty())
+                    textPsInAll.setBraille(BrailleTranslator::brlTranslate(textPsInAll.plain()));
+
+                QString brl = textPsInAll.braille();
                 if(brl.size() > 3)
                     slcdTxtBtnList.last()->setText(brl.left(3) + "..");
                 else
@@ -651,13 +717,13 @@ void PptSharingManager::updateSelectedPicturesInSlide()
 
     for(PptPictureShape pictPsInAll: allPptPictShapes)
     {
-        if(pictPsInAll.getShapeIndexInSlide() > 0)
+        if(pictPsInAll.shapeIndexInSlide() > 0)
         {
-            if(pictPsInAll.getIsSelected())
+            if(pictPsInAll.isSelected())
             {
                 QLabel* pLbl = new QLabel();
                 slcdImgLabels.append(pLbl);
-                pLbl->setPixmap(QPixmap::fromImage(imgs.at(pictPsInAll.getShapeIndexInSlide() - 1)));
+                pLbl->setPixmap(QPixmap::fromImage(pictPsInAll.image()));
                 pLbl->adjustSize();
 
                 ui->horizontalLayoutSelectedPics->addWidget(pLbl);
@@ -689,10 +755,16 @@ void PptSharingManager::updateBigViewPict()
 
 void PptSharingManager::updateBigViewText()
 {
-    if(textBlocks.size() > curTxtsIndex - 1)
+    for(PptTextShape& txtShape: allPptTextShapes)
     {
-        QString brl = BrailleTranslator::brlTranslate(textBlocks[curTxtsIndex - 1]);
-        ui->textEdit->setText(brl);
+        if(txtShape.shapeIndexInSlide() == curTxtsIndex)
+        {
+            if(txtShape.braille().isEmpty())
+            {
+                txtShape.setBraille(BrailleTranslator::brlTranslate(txtShape.plain()));
+            }
+            ui->textEdit->setText(txtShape.braille());
+        }
     }
 }
 
